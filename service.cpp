@@ -19,8 +19,15 @@
 #include <utils/Log.h>
 
 #include <inttypes.h>
+#ifdef _MSC_VER
+#include <base/logging.h>
+#include <log/log.h>
+#include <linux/MessageLooper.h>
+#include <linux/binder.h>
+#else
 #include <unistd.h>
 #include <sys/timerfd.h>
+#endif
 
 #include <android/hidl/token/1.0/ITokenManager.h>
 #include <cutils/properties.h>
@@ -90,7 +97,8 @@ public:
     }
 };
 
-// LooperCallback for IClientCallback
+// LooperCallback for IClientCallback 
+#ifndef _MSC_VER
 class ClientCallbackCallback : public LooperCallback {
 public:
     static sp<ClientCallbackCallback> setupTo(const sp<Looper>& looper, const sp<ServiceManager>& manager) {
@@ -137,8 +145,40 @@ private:
     ClientCallbackCallback(const sp<ServiceManager>& manager) : mManager(manager) {}
     sp<ServiceManager> mManager;
 };
+#else
+class ClientCallbackCallback : public virtual android::RefBase
+{
+public:
+
+    inline static constexpr int s_handle_interval_ms = 5000;
+
+    ClientCallbackCallback( const sp<ServiceManager>& manager )
+    {
+        mManager = manager;
+    }
+
+    bool handleEvent()
+    {
+        mManager->handleClientCallbacks();
+        return false;
+    }
+
+private:
+
+    sp<ServiceManager> mManager;
+};
+#endif
+
+bool libchrome_logging_handler( int levelIn, const char* file, int line,
+    size_t message_start, const std::string& str );
 
 int main() {
+
+#ifdef _MSC_VER
+    logging::SetLogMessageHandler( libchrome_logging_handler );
+    __set_default_log_file_name( nullptr, false );
+#endif
+
     // If hwservicemanager crashes, the system may be unstable and hard to debug. This is both why
     // we log this and why we care about this at all.
     setProcessHidlReturnRestriction(HidlReturnRestriction::ERROR_IF_UNCHECKED);
@@ -171,16 +211,81 @@ int main() {
               "HAL services will not start!\n", rc);
     }
 
+#ifdef _MSC_VER
+    MessageLooper looper;
+    std::function<bool()> timer_callback = std::bind( &ClientCallbackCallback::handleEvent,
+        std::make_shared<ClientCallbackCallback>( manager ) );
+    looper.RegisterTimer( ClientCallbackCallback::s_handle_interval_ms, timer_callback );
+    auto fun = [&looper]()
+    {
+        looper.PostTask( []()
+        {
+            IPCThreadState::self()->handlePolledCommands();
+        } );
+    };
+
+    porting_binder::register_binder_data_handler( fun, false );
+
+    int binder_fd = -1;
+    IPCThreadState::self()->setupPolling( &binder_fd );
+    LOG_ALWAYS_FATAL_IF( binder_fd < 0, "Failed to setupPolling: %d", binder_fd );
+    fun();
+
+#else
     sp<Looper> looper = Looper::prepare(0 /* opts */);
 
     (void)HwBinderCallback::setupTo(looper);
     (void)ClientCallbackCallback::setupTo(looper, manager);
+#endif
 
     ALOGI("hwservicemanager is ready now.");
 
+#ifdef _MSC_VER
+    looper.Run();
+#else
     while (true) {
         looper->pollAll(-1 /* timeoutMillis */);
     }
-
+#endif
     return 0;
+}
+
+bool libchrome_logging_handler( int levelIn, const char* file, int line,
+    size_t message_start, const std::string& str )
+{
+    android_LogPriority level = android_LogPriority::ANDROID_LOG_DEFAULT;
+
+    switch( levelIn )
+    {
+
+    case logging::LOG_VERBOSE:
+        level = android_LogPriority::ANDROID_LOG_VERBOSE;
+        break;
+    case logging::LOG_INFO:
+        level = android_LogPriority::ANDROID_LOG_INFO;
+        break;
+    case logging::LOG_WARNING:
+        level = android_LogPriority::ANDROID_LOG_WARN;
+        break;
+    case logging::LOG_ERROR:
+        level = android_LogPriority::ANDROID_LOG_ERROR;
+        break;
+    case logging::LOG_FATAL:
+        level = android_LogPriority::ANDROID_LOG_FATAL;
+        break;
+    case logging::LOG_NUM_SEVERITIES:
+        level = android_LogPriority::ANDROID_LOG_VERBOSE;
+        break;
+    default:
+        break;
+    }
+
+    std::string logStr;
+    if( str.size() > message_start )
+    {
+        logStr = str.substr( message_start );
+    }
+    __log_format( level, "", file, "", line, logStr.c_str() );
+
+    return true;
 }

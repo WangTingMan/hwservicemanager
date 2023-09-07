@@ -23,6 +23,8 @@
 #include <unordered_map>
 #include <array>
 
+#include <android/hidl/token/1.0/ANDROIDHIDLTOKEN10_EXPORTS.h>
+
 namespace android {
 namespace hidl {
 namespace token {

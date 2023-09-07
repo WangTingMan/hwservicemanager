@@ -22,6 +22,14 @@
 #include <hidl/Status.h>
 #include <hidl/MQDescriptor.h>
 
+#ifndef pid_t
+#define pid_t int
+#endif
+
+#ifndef ssize_t
+#define ssize_t int64_t
+#endif
+
 namespace android {
 namespace hidl {
 namespace manager {

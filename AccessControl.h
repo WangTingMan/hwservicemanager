@@ -46,7 +46,9 @@ private:
     static int auditCallback(void *data, security_class_t cls, char *buf, size_t len);
 
     char*                  mSeContext;
+#ifndef _MSC_VER
     struct selabel_handle* mSeHandle;
+#endif
     union selinux_callback mSeCallbacks;
 };
 

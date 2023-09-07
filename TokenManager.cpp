@@ -26,6 +26,8 @@
 #include <openssl/rand.h>
 #include <functional>
 
+#include <base/rand_util.h>
+
 namespace android {
 namespace hidl {
 namespace token {
@@ -33,6 +35,9 @@ namespace V1_0 {
 namespace implementation {
 
 static void ReadRandomBytes(uint8_t *buf, size_t len) {
+#ifdef _MSC_VER
+    ::base::RandBytes( buf, len );
+#else
     int fd = TEMP_FAILURE_RETRY(open("/dev/urandom", O_RDONLY | O_CLOEXEC | O_NOFOLLOW));
     if (fd == -1) {
         ALOGE("%s: cannot read /dev/urandom", __func__);
@@ -48,6 +53,7 @@ static void ReadRandomBytes(uint8_t *buf, size_t len) {
         ALOGW("%s: there are %d bytes skipped", __func__, (int)len);
     }
     close(fd);
+#endif
 }
 
 TokenManager::TokenManager() {

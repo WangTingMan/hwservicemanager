@@ -37,8 +37,11 @@ struct audit_data {
 using android::FQName;
 
 AccessControl::AccessControl() {
+#ifndef _MSC_VER
+    // Why we need use such fucking selinex on windows?
     mSeHandle = selinux_android_hw_service_context_handle();
     LOG_ALWAYS_FATAL_IF(mSeHandle == nullptr, "Failed to acquire SELinux handle.");
+#endif
 
     if (getcon(&mSeContext) != 0) {
         LOG_ALWAYS_FATAL("Failed to acquire hwservicemanager context.");
@@ -115,10 +118,12 @@ bool AccessControl::checkPermission(const CallingContext& source, const char *pe
     bool allowed = false;
 
     // Lookup service in hwservice_contexts
+#ifndef _MSC_VER
     if (selabel_lookup(mSeHandle, &targetContext, interface, 0) != 0) {
         ALOGE("No match for interface %s in hwservice_contexts", interface);
         return false;
     }
+#endif
 
     allowed = checkPermission(source, targetContext, perm, interface);
 

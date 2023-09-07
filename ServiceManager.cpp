@@ -318,7 +318,7 @@ Return<bool> ServiceManager::add(const hidl_string& name, const sp<IBase>& servi
 
     auto pidcon = getBinderCallingContext();
 
-    if (!mAcl.canAdd(IBase::descriptor, pidcon)) {
+    if (!mAcl.canAdd(IBase::getDescriptorName(), pidcon)) {
         LOG(ERROR) << "Missing permissions to add IBase";
         return false;
     }
