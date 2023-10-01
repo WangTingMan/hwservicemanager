@@ -212,24 +212,17 @@ int main() {
     }
 
 #ifdef _MSC_VER
-    MessageLooper looper;
+    MessageLooper& looper = MessageLooper::GetDefault();
     std::function<bool()> timer_callback = std::bind( &ClientCallbackCallback::handleEvent,
         std::make_shared<ClientCallbackCallback>( manager ) );
     looper.RegisterTimer( ClientCallbackCallback::s_handle_interval_ms, timer_callback );
-    auto fun = [&looper]()
-    {
-        looper.PostTask( []()
-        {
-            IPCThreadState::self()->handlePolledCommands();
-        } );
-    };
-
+    auto fun = std::bind( &IPCThreadState::handlePolledCommands, IPCThreadState::self() );
     porting_binder::register_binder_data_handler( fun, false );
 
     int binder_fd = -1;
     IPCThreadState::self()->setupPolling( &binder_fd );
     LOG_ALWAYS_FATAL_IF( binder_fd < 0, "Failed to setupPolling: %d", binder_fd );
-    fun();
+    looper.PostTask( fun );
 
 #else
     sp<Looper> looper = Looper::prepare(0 /* opts */);
