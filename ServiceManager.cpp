@@ -703,6 +703,19 @@ Return<void> ServiceManager::listManifestByInterface(const hidl_string& fqName,
     }
 
     std::set<std::string> instances = getInstances(fqName);
+#ifdef _MSC_VER
+    // we ignore vintf permission on windows.. :)
+    auto ifaceIt = mServiceMap.find( fqName );
+    if( ifaceIt != mServiceMap.end() )
+    {
+        instances.insert( fqName );
+        auto& instance_map = ifaceIt->second.getInstanceMap();
+        for( auto& ele : instance_map )
+        {
+            instances.insert( ele.first );
+        }
+    }
+#endif
     hidl_vec<hidl_string> ret(instances.begin(), instances.end());
 
     _hidl_cb(ret);
