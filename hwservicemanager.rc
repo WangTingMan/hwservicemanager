@@ -10,3 +10,6 @@ service hwservicemanager /system/system_ext/bin/hwservicemanager
     task_profiles ServiceCapacityLow HighPerformance
     class animation
     shutdown critical
+
+on property:hwservicemanager.disabled=true
+    stop hwservicemanager

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 package {
+    default_team: "trendy_team_android_hardware_backed_security",
     default_applicable_licenses: ["system_hwservicemanager_license"],
 }
 
@@ -94,9 +95,6 @@ cc_binary {
         "libhwservicemanager_shared_libs",
         "libtokenmanager_shared_libs",
     ],
-    vintf_fragments: [
-        "hwservicemanager.xml",
-    ],
     init_rc: [
         "hwservicemanager.rc",
     ],
@@ -112,7 +110,6 @@ cc_binary {
     ],
     bootstrap: true,
     system_ext_specific: true,
-    required: ["hwservicemanager_compat_symlink_module"],
 }
 
 // Create symlink /system/bin/hwservicemanager -> /system/system_ext/bin/hwservicemanager

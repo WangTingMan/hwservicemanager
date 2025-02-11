@@ -1,5 +1,5 @@
 <manifest version="1.0" type="framework">
-    <hal max-level="8">
+    <hal>
         <name>android.hidl.manager</name>
         <transport>hwbinder</transport>
         <version>1.2</version>
@@ -8,7 +8,7 @@
             <instance>default</instance>
         </interface>
     </hal>
-    <hal max-level="8">
+    <hal>
         <name>android.hidl.token</name>
         <transport>hwbinder</transport>
         <version>1.0</version>
