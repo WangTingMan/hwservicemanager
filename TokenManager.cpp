@@ -167,7 +167,7 @@ TokenManager::TokenInterface TokenManager::generateToken(const sp<IBase> &interf
     return { interface, id, token };
 }
 
-__attribute__((optnone))
+/*__attribute__((optnone))*/
 bool TokenManager::constantTimeCompare(const hidl_vec<uint8_t> &t1, const hidl_vec<uint8_t> &t2) {
     if (t1.size() != t2.size()) {
         return false;
